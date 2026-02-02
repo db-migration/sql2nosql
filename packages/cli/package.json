@@ -1,16 +1,41 @@
 {
   "name": "@s2n/cli",
   "version": "0.1.0",
+  "description": "CLI tool to analyze PostgreSQL schemas and generate NoSQL schema proposals",
   "private": false,
+  "license": "MIT",
+  "author": "amin uddin",
+  "keywords": [
+    "sql",
+    "nosql",
+    "postgresql",
+    "mongodb",
+    "schema",
+    "migration",
+    "analysis",
+    "cli"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/sql-to-nosql-analyzer.git"
+  },
   "bin": {
     "sql2nosql": "dist/index.js"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "analyze": "node dist/index.js analyze",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "yarn build"
   },
   "dependencies": {
     "@s2n/core": "0.1.0",

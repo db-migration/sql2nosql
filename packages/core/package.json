@@ -1,11 +1,29 @@
 {
   "name": "@s2n/core",
   "version": "0.1.0",
+  "description": "Core library for SQL to NoSQL schema analysis",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "MIT",
+  "author": "amin uddin",
   "private": false,
+  "keywords": [
+    "sql",
+    "nosql",
+    "schema",
+    "analysis",
+    "migration"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/sql-to-nosql-analyzer.git"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "yarn build"
   }
 }

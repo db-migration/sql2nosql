@@ -45,6 +45,16 @@ program
     "--config <path>",
     "Path to JSON config file (default: ./sql2nosql.config.json)",
   )
+  .option("--llm", "Enable LLM-powered optimization recommendations")
+  .option(
+    "--llm-api-key <key>",
+    "OpenAI API key (or set OPENAI_API_KEY env var)",
+  )
+  .option(
+    "--llm-model <model>",
+    "OpenAI model to use (default: gpt-4)",
+    "gpt-4",
+  )
   .action(async (opts) => {
     const configFromFile = loadConfig(opts.config);
 
@@ -76,7 +86,73 @@ program
         foreignKeys,
       };
 
-      const analysis: AnalysisResult = buildAnalysisResult(sqlSchema);
+      let analysis: AnalysisResult = buildAnalysisResult(sqlSchema);
+
+      // LLM recommendations (optional)
+      const enableLLM = opts.llm ?? configFromFile.llm?.enabled ?? false;
+      if (enableLLM) {
+        const apiKey =
+          opts.llmApiKey ??
+          configFromFile.llm?.apiKey ??
+          process.env.OPENAI_API_KEY;
+        const model = opts.llmModel ?? configFromFile.llm?.model ?? "gpt-4";
+
+        if (!apiKey) {
+          // eslint-disable-next-line no-console
+          console.error(
+            "LLM enabled but no API key provided. Set --llm-api-key, OPENAI_API_KEY env var, or llm.apiKey in config.",
+          );
+          process.exit(1);
+        }
+
+        // eslint-disable-next-line no-console
+        console.log("Generating LLM optimization recommendations...");
+        try {
+          // Dynamic import to avoid requiring @s2n/llm when not used
+          // @ts-expect-error - Optional dependency, may not be installed
+          const llmModule = await import("@s2n/llm");
+          if (!llmModule || !llmModule.OpenAIProvider) {
+            throw new Error("Cannot find module '@s2n/llm'. Run 'yarn install' and 'yarn build:llm'.");
+          }
+          const { OpenAIProvider } = llmModule;
+          const llmProvider = new OpenAIProvider({
+            apiKey,
+            model,
+            temperature: 0.3,
+            maxTokens: 2000,
+          });
+
+          const recommendations = await llmProvider.generateRecommendations(
+            sqlSchema,
+            analysis.nosqlSchema,
+          );
+
+          analysis = {
+            ...analysis,
+            llmRecommendations: recommendations,
+          };
+
+          // eslint-disable-next-line no-console
+          console.log(
+            `Generated ${recommendations.embeddings.length} embedding recommendations and ${recommendations.insights.length} insights.`,
+          );
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            error.message.includes("Cannot find module")
+          ) {
+            // eslint-disable-next-line no-console
+            console.error(
+              "LLM package not found. Run 'yarn install' and 'yarn build:llm' to enable LLM features.",
+            );
+          } else {
+            // eslint-disable-next-line no-console
+            console.warn(
+              `LLM recommendations failed: ${error instanceof Error ? error.message : String(error)}. Continuing with deterministic analysis only.`,
+            );
+          }
+        }
+      }
 
       mkdirSync(outputDir, { recursive: true });
 
@@ -107,9 +183,18 @@ program
 
         // Generate HTML for this table
         const htmlFileName = `table-${table.name}.html`;
+        const tableRecommendations = analysis.llmRecommendations?.embeddings.filter(
+          (r) => r.collection === table.name,
+        );
         writeFileSync(
           join(outputDir, htmlFileName),
-          generateTableHTML(table, collection ?? null, analysis.sqlSchema.foreignKeys),
+          generateTableHTML(
+            table,
+            collection ?? null,
+            analysis.sqlSchema.foreignKeys,
+            tableRecommendations,
+            analysis.llmRecommendations?.insights.filter((i) => i.collection === table.name),
+          ),
           "utf8",
         );
       }
@@ -150,7 +235,16 @@ program.parseAsync(process.argv).catch((err) => {
 
 function loadConfig(
   explicitPath?: string,
-): { connection?: string; schema?: string; output?: string } {
+): {
+  connection?: string;
+  schema?: string;
+  output?: string;
+  llm?: {
+    enabled?: boolean;
+    apiKey?: string;
+    model?: string;
+  };
+} {
   if (explicitPath) {
     const path = resolvePath(explicitPath);
     if (existsSync(path)) {
@@ -184,6 +278,11 @@ function readConfigFile(path: string): {
   connection?: string;
   schema?: string;
   output?: string;
+  llm?: {
+    enabled?: boolean;
+    apiKey?: string;
+    model?: string;
+  };
 } {
   try {
     const raw = readFileSync(path, "utf8");
@@ -191,6 +290,11 @@ function readConfigFile(path: string): {
       connection?: string;
       schema?: string;
       output?: string;
+      llm?: {
+        enabled?: boolean;
+        apiKey?: string;
+        model?: string;
+      };
     };
     return parsed ?? {};
   } catch {
@@ -386,6 +490,7 @@ function generateOverviewHTML(analysis: AnalysisResult): string {
   const tables = analysis.sqlSchema.tables;
   const fks = analysis.sqlSchema.foreignKeys;
   const collections = analysis.nosqlSchema.collections;
+  const hasLLM = !!analysis.llmRecommendations;
 
   const tableRows = tables
     .map(
@@ -466,20 +571,26 @@ function generateOverviewHTML(analysis: AnalysisResult): string {
     <h1>SQL → NoSQL Schema Analysis</h1>
     <p class="subtitle">Overview of all tables and their NoSQL mappings</p>
     
-    <div class="stats">
-      <div class="stat-card">
-        <div class="stat-value">${tables.length}</div>
-        <div class="stat-label">Tables</div>
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-value">${tables.length}</div>
+          <div class="stat-label">Tables</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${fks.length}</div>
+          <div class="stat-label">Foreign Keys</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${collections.length}</div>
+          <div class="stat-label">NoSQL Collections</div>
+        </div>
+        ${hasLLM ? `
+        <div class="stat-card" style="border-color: rgba(34, 197, 94, 0.5);">
+          <div class="stat-value" style="color: #22c55e;">${analysis.llmRecommendations!.embeddings.length}</div>
+          <div class="stat-label">LLM Recommendations</div>
+        </div>
+        ` : ""}
       </div>
-      <div class="stat-card">
-        <div class="stat-value">${fks.length}</div>
-        <div class="stat-label">Foreign Keys</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value">${collections.length}</div>
-        <div class="stat-label">NoSQL Collections</div>
-      </div>
-    </div>
 
     <table>
       <thead>
@@ -504,6 +615,21 @@ function generateTableHTML(
   table: SqlTable,
   collection: NoSqlCollection | null,
   foreignKeys: SqlForeignKey[],
+  embeddingRecommendations?: Array<{
+    collection: string;
+    field: string;
+    strategy: string;
+    reason: string;
+    suggestedFields?: string[];
+    confidence?: number;
+  }>,
+  insights?: Array<{
+    type: string;
+    collection: string;
+    recommendation: string;
+    reasoning: string;
+    tradeoffs?: { pros: string[]; cons: string[] };
+  }>,
 ): string {
   const tableFKs = foreignKeys.filter((fk) => fk.fromTable === table.name);
   const refFKs = foreignKeys.filter((fk) => fk.toTable === table.name);
@@ -696,6 +822,66 @@ function generateTableHTML(
       ` : ""}
     </div>
     ` : ""}
+
+    ${embeddingRecommendations && embeddingRecommendations.length > 0 ? `
+    <div class="section" style="border-color: rgba(34, 197, 94, 0.5);">
+      <h2 style="color: #22c55e;">🤖 LLM Optimization Recommendations</h2>
+      ${embeddingRecommendations.map((rec) => `
+      <div style="margin-top: 16px; padding: 16px; background: rgba(34, 197, 94, 0.1); border-radius: 8px; border-left: 3px solid #22c55e;">
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+          <div>
+            <strong style="color: #22c55e;">Field: ${rec.field}</strong>
+          </div>
+          <span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;">${rec.strategy.toUpperCase()}</span>
+        </div>
+        <p style="color: #9ca3af; margin: 8px 0; font-size: 14px;">${rec.reason}</p>
+        ${rec.suggestedFields && rec.suggestedFields.length > 0 ? `
+        <div style="margin-top: 8px;">
+          <span style="color: #9ca3af; font-size: 12px;">Suggested fields to embed:</span>
+          <div style="margin-top: 4px;">
+            ${rec.suggestedFields.map((f) => `<code style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 2px 6px; border-radius: 4px; font-size: 12px; margin-right: 4px;">${f}</code>`).join("")}
+          </div>
+        </div>
+        ` : ""}
+        ${rec.confidence ? `
+        <div style="margin-top: 8px; font-size: 12px; color: #9ca3af;">
+          Confidence: ${Math.round(rec.confidence * 100)}%
+        </div>
+        ` : ""}
+      </div>
+      `).join("")}
+    </div>
+    ` : ""}
+
+    ${insights && insights.length > 0 ? `
+    <div class="section" style="border-color: rgba(59, 130, 246, 0.5);">
+      <h2 style="color: #3b82f6;">💡 Additional Insights</h2>
+      ${insights.map((insight) => `
+      <div style="margin-top: 16px; padding: 16px; background: rgba(59, 130, 246, 0.1); border-radius: 8px; border-left: 3px solid #3b82f6;">
+        <div style="margin-bottom: 8px;">
+          <strong style="color: #3b82f6;">${insight.recommendation}</strong>
+        </div>
+        <p style="color: #9ca3af; margin: 8px 0; font-size: 14px;">${insight.reasoning}</p>
+        ${insight.tradeoffs ? `
+        <div style="margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div>
+            <div style="color: #22c55e; font-size: 12px; font-weight: 600; margin-bottom: 4px;">Pros:</div>
+            <ul style="list-style: none; padding-left: 0; font-size: 12px; color: #9ca3af;">
+              ${insight.tradeoffs.pros.map((p) => `<li style="margin-bottom: 4px;">✓ ${p}</li>`).join("")}
+            </ul>
+          </div>
+          <div>
+            <div style="color: #ef4444; font-size: 12px; font-weight: 600; margin-bottom: 4px;">Cons:</div>
+            <ul style="list-style: none; padding-left: 0; font-size: 12px; color: #9ca3af;">
+              ${insight.tradeoffs.cons.map((c) => `<li style="margin-bottom: 4px;">✗ ${c}</li>`).join("")}
+            </ul>
+          </div>
+        </div>
+        ` : ""}
+      </div>
+      `).join("")}
+    </div>
+    ` : ""}
   </div>
 </body>
 </html>`;
@@ -705,6 +891,7 @@ function generateIndexHTML(analysis: AnalysisResult): string {
   const tables = analysis.sqlSchema.tables;
   const fks = analysis.sqlSchema.foreignKeys;
   const collections = analysis.nosqlSchema.collections;
+  const hasLLM = !!analysis.llmRecommendations;
 
   const tableCards = tables
     .map(
@@ -736,6 +923,15 @@ function generateIndexHTML(analysis: AnalysisResult): string {
           <span class="value"><code>${table.primaryKey.join(", ")}</code></span>
         </div>
         ` : ""}
+        ${hasLLM ? (() => {
+          const tableRecs = analysis.llmRecommendations!.embeddings.filter((r) => r.collection === table.name);
+          return tableRecs.length > 0 ? `
+        <div class="card-row">
+          <span class="label">LLM Recommendations:</span>
+          <span class="value" style="color: #22c55e;">${tableRecs.length}</span>
+        </div>
+        ` : "";
+        })() : ""}
       </div>
       <div class="card-footer">
         <a href="table-${table.name}.html" class="btn">View Details →</a>
@@ -951,11 +1147,18 @@ function generateIndexHTML(analysis: AnalysisResult): string {
           <div class="stat-value">${tables.reduce((sum, t) => sum + t.columns.length, 0)}</div>
           <div class="stat-label">Total Columns</div>
         </div>
+        ${hasLLM ? `
+        <div class="stat-card" style="border-color: rgba(34, 197, 94, 0.5);">
+          <div class="stat-value" style="color: #22c55e;">🤖</div>
+          <div class="stat-label">AI Optimized</div>
+        </div>
+        ` : ""}
       </div>
 
       <div class="quick-links">
         <a href="schema-analysis.html" class="quick-link">📊 Full Overview</a>
         <a href="schema-analysis.json" class="quick-link" download>📥 Download JSON</a>
+        ${hasLLM ? `<span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 12px 24px; border-radius: 8px; font-weight: 600;">🤖 LLM Recommendations Enabled</span>` : ""}
       </div>
     </div>
 

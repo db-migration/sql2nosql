@@ -58,13 +58,13 @@ async function main() {
 
     for (const row of artistsRes.rows) {
       const doc = Artist.buildArtistDoc(row);
-      if (doc.artistid == null) {
-        console.warn("Artist row missing artistid, skipping:", row);
+      if (doc.ArtistId == null) {
+        console.warn("Artist row missing ArtistId, skipping:", row);
         continue;
       }
-      artistsById.set(doc.artistid, doc);
+      artistsById.set(doc.ArtistId, doc);
       await db.collection("artist").updateOne(
-        { artistid: doc.artistid },
+        { ArtistId: doc.ArtistId },
         { $set: doc },
         { upsert: true },
       );
@@ -76,7 +76,7 @@ async function main() {
     console.log(`Found ${albumsRes.rows.length} albums.`);
 
     for (const row of albumsRes.rows) {
-      const artistId = row.artistid;
+      const artistId = row.artistid ?? row.ArtistId;
       const artistDoc = artistId != null ? artistsById.get(artistId) : undefined;
       const doc = Album.buildAlbumDoc(row, { artist: artistDoc });
 

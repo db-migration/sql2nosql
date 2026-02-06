@@ -213,13 +213,11 @@ yarn analyze          # Run CLI analysis (postgres connection required)
 
 ## Contributing
 
-Contributions are welcome! Please ensure:
+Contributions are welcome!
 
-- Code follows the project's architecture principles
-- TypeScript types are explicit
-- Functions are small and composable
-- No magic defaults
-- Fail loudly with meaningful errors
+- For bugs or feature ideas, please open a **GitHub issue**.
+- For code changes, see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+- For larger changes, open an issue first and tag **@amide-init** to discuss the approach.
 
 ## License
 

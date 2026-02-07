@@ -66,3 +66,12 @@ Scripts read `sql2nosql.config.json`. Relevant keys:
 - **dryRun**: `true` = no MongoDB writes, only logs.
 - **skipOnError**: `true` = log and continue on row errors; `false` = throw and exit.
 - **progressEvery**: log progress every N rows (0 = only final summary).
+
+## Running migration scripts
+
+Scripts are generated under `output/scripts/` (folder is regenerated on each `sql2nosql analyze`). To run them:
+
+1. Ensure `sql2nosql.config.json` is at the project root (scripts resolve it from 4 levels above their path).
+2. From `packages/cli`: `yarn install` (includes `pg` and `mongodb`), then e.g. `node output/scripts/album.migrate.js`.
+3. Run dependency order when needed (e.g. `artist.migrate.js` before `album.migrate.js`).
+4. Use `migration.dryRun: true` in config to test without writing to MongoDB.

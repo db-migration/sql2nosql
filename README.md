@@ -50,6 +50,40 @@ yarn install
 yarn build
 ```
 
+## How to use this product
+
+1. **Install** (one time)
+   ```bash
+   git clone https://github.com/data-migration/sql2nosql.git
+   cd sql2nosql
+   yarn install
+   yarn build
+   ```
+
+2. **Configure** (one time per project)
+   - Copy `sql2nosql.config.example.json` to `sql2nosql.config.json`.
+   - Fill in your **PostgreSQL** connection (`connection`, `schema`).
+   - Optionally set **LLM** (`llm.enabled`, `llm.apiKey`, `llm.model`) for AI-powered recommendations.
+   - Optionally set **MongoDB** (`mongodb.uri`, `mongodb.database`) if you plan to run the generated migration scripts.
+
+3. **Analyze**
+   ```bash
+   yarn analyze
+   ```
+   Or with LLM: `yarn analyze --llm --llm-model gpt-4.1-mini`
+
+4. **View results**
+   - The tool opens `output/view/index.html` in your browser.
+   - Browse **analyze/** (deterministic schema) and **recommend/** (LLM-optimized schema) JSON.
+   - Use **view/** HTML pages to compare SQL vs NoSQL side-by-side and read LLM insights.
+
+5. **Migrate data (optional)**
+   - Generated scripts live in `output/scripts/` (one `.migrate.js` per table).
+   - Each script can be run standalone: `node output/scripts/artist.migrate.js` (reads config, connects to Postgres + MongoDB, upserts data).
+   - Run in dependency order (e.g. artist before album); see `run-all.migrate.js` for the list.
+
+---
+
 ## Usage
 
 ### CLI

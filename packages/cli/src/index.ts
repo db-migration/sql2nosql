@@ -2,6 +2,7 @@
 
 import { Command } from "commander";
 import { Client } from "pg";
+import chalk from "chalk";
 import {
   buildAnalysisResult,
   type AnalysisResult,
@@ -73,10 +74,13 @@ program
     if (!connectionString) {
       // eslint-disable-next-line no-console
       console.error(
-        "Missing connection string. Provide --connection or set it in sql2nosql.config.json",
+        chalk.red("Missing connection string. Provide --connection or set it in sql2nosql.config.json"),
       );
       process.exit(1);
     }
+
+    // eslint-disable-next-line no-console
+      console.log(chalk.cyan.bold("sql2nosql") + chalk.dim(" · analyzing schema ") + chalk.cyan(`"${schema}"`) + "\n");
 
     const client = new Client({ connectionString });
     await client.connect();
@@ -105,13 +109,13 @@ program
         if (!apiKey) {
           // eslint-disable-next-line no-console
           console.error(
-            "LLM enabled but no API key provided. Set --llm-api-key, OPENAI_API_KEY env var, or llm.apiKey in config.",
+            chalk.red("LLM enabled but no API key provided. Set --llm-api-key, OPENAI_API_KEY env var, or llm.apiKey in config."),
           );
           process.exit(1);
         }
 
         // eslint-disable-next-line no-console
-        console.log("Generating LLM optimization recommendations...");
+        console.log(chalk.cyan("Generating LLM optimization recommendations..."));
         try {
           // Dynamic import to avoid requiring @s2n/llm when not used.
           // Cast to any so this file doesn't depend on @s2n/llm types at compile time.
@@ -146,7 +150,7 @@ program
 
           // eslint-disable-next-line no-console
           console.log(
-            `Generated ${recommendations.embeddings.length} embedding recommendations and ${recommendations.insights.length} insights.`,
+            chalk.green(`Generated ${recommendations.embeddings.length} embedding recommendations and ${recommendations.insights.length} insights.`),
           );
         } catch (error) {
           if (
@@ -155,12 +159,12 @@ program
           ) {
             // eslint-disable-next-line no-console
             console.error(
-              "LLM package not found. Run 'yarn install' and 'yarn build:llm' to enable LLM features.",
+              chalk.red("LLM package not found. Run 'yarn install' and 'yarn build:llm' to enable LLM features."),
             );
           } else {
             // eslint-disable-next-line no-console
             console.warn(
-              `LLM recommendations failed: ${error instanceof Error ? error.message : String(error)}. Continuing with deterministic analysis only.`,
+              chalk.yellow(`LLM recommendations failed: ${error instanceof Error ? error.message : String(error)}. Continuing with deterministic analysis only.`),
             );
           }
         }
@@ -323,13 +327,15 @@ program
       const indexHtmlPath = join(viewDir, "index.html");
       // eslint-disable-next-line no-console
       console.log(
-        `Analyzed ${baseAnalysis.sqlSchema.tables.length} tables from schema "${schema}". JSON written to ${join(
-          outputDir,
-          "analyze",
-        )}${optimizedAnalysis ? ` and ${join(outputDir, "recommend")}` : ""}, HTML written to ${join(
-          outputDir,
-          "view",
-        )}`,
+        chalk.green("✓") +
+          " " +
+          chalk.bold(`Analyzed ${baseAnalysis.sqlSchema.tables.length} tables`) +
+          chalk.dim(` from schema "${schema}".`) +
+          "\n  " +
+          chalk.dim(`JSON: ${join(outputDir, "analyze")}`) +
+          (optimizedAnalysis ? chalk.dim(` | ${join(outputDir, "recommend")}`) : "") +
+          "\n  " +
+          chalk.dim(`HTML: ${join(outputDir, "view")}`),
       );
       
       // Auto-open browser
@@ -341,7 +347,7 @@ program
 
 program.parseAsync(process.argv).catch((err) => {
   // eslint-disable-next-line no-console
-  console.error(err);
+  console.error(chalk.red("Error:"), err);
   process.exit(1);
 });
 
@@ -411,7 +417,7 @@ function readConfigFile(path: string): {
     return parsed ?? {};
   } catch {
     // eslint-disable-next-line no-console
-    console.error(`Failed to read config from ${path}, ignoring it.`);
+    console.error(chalk.yellow(`Failed to read config from ${path}, ignoring it.`));
     return {};
   }
 }
@@ -1765,10 +1771,10 @@ function openBrowser(filePath: string): void {
   exec(command, (error) => {
     if (error) {
       // eslint-disable-next-line no-console
-      console.log(`Could not auto-open browser. Please open ${filePath} manually.`);
+      console.log(chalk.yellow(`Could not auto-open browser. Please open ${filePath} manually.`));
     } else {
       // eslint-disable-next-line no-console
-      console.log(`Opened ${filePath} in your browser.`);
+      console.log(chalk.green(`Opened ${filePath} in your browser.`));
     }
   });
 }

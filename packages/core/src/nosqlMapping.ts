@@ -17,12 +17,15 @@ import type {
 export function mapToNoSql(sqlSchema: SqlSchema): NoSqlSchema {
   const collections: NoSqlCollection[] = [];
 
+  const tables = Array.isArray(sqlSchema.tables) ? sqlSchema.tables : [];
+  const foreignKeys = Array.isArray(sqlSchema.foreignKeys) ? sqlSchema.foreignKeys : [];
+
   const fkByTableAndColumn = new Map<string, string>();
-  for (const fk of sqlSchema.foreignKeys) {
+  for (const fk of foreignKeys) {
     fkByTableAndColumn.set(`${fk.fromTable}.${fk.fromColumn}`, fk.toTable);
   }
 
-  for (const table of sqlSchema.tables) {
+  for (const table of tables) {
     const fields: NoSqlField[] = table.columns.map((col) => {
       const fkKey = `${table.name}.${col.name}`;
       const refCollection = fkByTableAndColumn.get(fkKey);
@@ -34,7 +37,7 @@ export function mapToNoSql(sqlSchema: SqlSchema): NoSqlSchema {
           optional: col.nullable,
           refCollection,
           description: `Reference to ${refCollection}.${findPrimaryKey(
-            sqlSchema,
+            { tables, foreignKeys },
             refCollection,
           )}`,
         };
@@ -85,7 +88,10 @@ function mapColumnTypeToNoSql(
   }
 }
 
-function findPrimaryKey(schema: SqlSchema, tableName: string): string | string[] {
+function findPrimaryKey(
+  schema: { tables: SqlSchema["tables"]; foreignKeys: SqlSchema["foreignKeys"] },
+  tableName: string,
+): string | string[] {
   const table = schema.tables.find((t) => t.name === tableName);
   if (!table) return "id";
   if (!table.primaryKey.length) return "id";
@@ -93,9 +99,13 @@ function findPrimaryKey(schema: SqlSchema, tableName: string): string | string[]
 }
 
 export function buildAnalysisResult(sqlSchema: SqlSchema): AnalysisResult {
+  const normalized: SqlSchema = {
+    tables: Array.isArray(sqlSchema.tables) ? sqlSchema.tables : [],
+    foreignKeys: Array.isArray(sqlSchema.foreignKeys) ? sqlSchema.foreignKeys : [],
+  };
   return {
-    sqlSchema,
-    nosqlSchema: mapToNoSql(sqlSchema),
+    sqlSchema: normalized,
+    nosqlSchema: mapToNoSql(normalized),
   };
 }
 

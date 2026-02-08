@@ -22,4 +22,5 @@ Analyze PostgreSQL schemas and generate NoSQL (MongoDB) design and migration scr
 ## Links
 
 - [GitHub](https://github.com/usedamru/sql2nosql)
+- [Live docs](https://usedamru.github.io/sql2nosql/) (GitHub Pages)
 - Config: `sql2nosql.config.json` at project root

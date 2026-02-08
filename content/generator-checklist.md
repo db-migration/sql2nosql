@@ -1,4 +1,4 @@
-# Generator Optimization Checklist
+# Generator optimization checklist
 
 Status of the migration script generator against the optimization checklist.
 
@@ -38,7 +38,7 @@ Status of the migration script generator against the optimization checklist.
 | **Production readiness** | Index-first, write-later ordering | ✅ | Script creates indexes then migrates. |
 | | Deterministic ordering in queries | ✅ | `ORDER BY` on PK columns in batched query. |
 
-Legend: ✅ Done | ⚠️ Partial | 📋 Planned
+Legend: ✅ Done \| ⚠️ Partial \| 📋 Planned
 
 ## Config (migration scripts)
 
@@ -69,9 +69,10 @@ Scripts read `sql2nosql.config.json`. Relevant keys:
 
 ## Running migration scripts
 
-Scripts are generated under `output/scripts/` (folder is regenerated on each `sql2nosql analyze`). To run them:
+**Run all migrations with Node:**
 
-1. Ensure `sql2nosql.config.json` is at the project root (scripts resolve it from 4 levels above their path).
-2. From `packages/cli`: `yarn install` (includes `pg` and `mongodb`), then e.g. `node output/scripts/album.migrate.js`.
-3. Run dependency order when needed (e.g. `artist.migrate.js` before `album.migrate.js`).
-4. Use `migration.dryRun: true` in config to test without writing to MongoDB.
+```bash
+cd packages/cli && node output/scripts/run-all.migrate.js
+```
+
+Scripts are generated under `output/scripts/` (regenerated on each `sql2nosql analyze`). Ensure `sql2nosql.config.json` is at the project root; use `migration.dryRun: true` to test without writing to MongoDB.

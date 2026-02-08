@@ -2,7 +2,8 @@
   "name": "sql-to-nosql-analyzer",
   "private": true,
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "docs-site"
   ],
   "version": "1.0.0",
   "scripts": {
@@ -10,7 +11,10 @@
     "build:core": "yarn workspace @s2n/core build",
     "build:llm": "yarn workspace @s2n/llm build",
     "build:cli": "yarn workspace @s2n/cli build",
-    "build": "yarn run build:core && yarn run build:llm && yarn run build:cli"
+    "build": "yarn run build:core && yarn run build:llm && yarn run build:cli",
+    "docs:dev": "yarn workspace sql2nosql-docs dev",
+    "docs:build": "yarn workspace sql2nosql-docs build",
+    "docs:preview": "yarn workspace sql2nosql-docs preview"
   },
   "license": "MIT",
   "author": "amin uddin",

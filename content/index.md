@@ -1,6 +1,6 @@
-# sql2nosql
+# Damru · sql2nosql
 
-Analyze PostgreSQL schemas and generate NoSQL (MongoDB) design and migration scripts.
+**Damru** — Analyze PostgreSQL schemas and generate NoSQL (MongoDB) design and migration scripts.
 
 ## Quick start
 

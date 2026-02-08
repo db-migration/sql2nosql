@@ -1,6 +1,6 @@
 # Run migrations (Postgres → MongoDB)
 
-Migration scripts are generated under `packages/cli/output/scripts/` when you run `sql2nosql analyze`. That folder is regenerated on each analyze.
+**Damru** — Migration scripts are generated under `packages/cli/output/scripts/` when you run `sql2nosql analyze`. That folder is regenerated on each analyze.
 
 ## Run all migrations with Node
 

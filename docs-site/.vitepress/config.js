@@ -1,8 +1,8 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
-  title: 'sql2nosql',
-  description: 'Analyze PostgreSQL schemas and generate NoSQL (MongoDB) design and migration scripts.',
+  title: 'Damru',
+  description: 'Damru — sql2nosql: analyze PostgreSQL schemas and generate NoSQL (MongoDB) design and migration scripts.',
   base: process.env.VITEPRESS_BASE || '/',
   srcDir: '../content',
   themeConfig: {
@@ -26,7 +26,7 @@ export default defineConfig({
       { icon: 'github', link: 'https://github.com/usedamru/sql2nosql' },
     ],
     footer: {
-      message: 'Generated with VitePress',
+      message: 'Damru',
       copyright: 'Copyright © Damru',
     },
   },

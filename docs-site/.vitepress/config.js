@@ -23,7 +23,7 @@ export default defineConfig({
     ],
     outline: { label: 'On this page', level: [2, 3] },
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/data-migration/sql2nosql' },
+      { icon: 'github', link: 'https://github.com/db-migration/sql2nosql' },
     ],
     footer: {
       message: 'Generated with VitePress',

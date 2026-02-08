@@ -59,7 +59,7 @@ yarn build
 
 1. **Install** (one time)
    ```bash
-   git clone https://github.com/db-migration/sql2nosql.git
+   git clone https://github.com/usedamru/sql2nosql.git
    cd sql2nosql
    yarn install
    yarn build
